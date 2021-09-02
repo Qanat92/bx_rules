@@ -1,6 +1,6 @@
 # Регламент и рекомендации по разработке
 ## Корпоративные сайты:
-#### Настройка git
+### Настройка git
 1. Создать приватную репозиторию в github.com (Обычно Тимлид или курирующий программист уже подготовить)
 2. Получить ssh доступы к тестовой площадки для проекта 
 3. Скачать и установить битрикс БУС в площадку с помощи 
@@ -118,7 +118,7 @@ bower_components
 12. Получения изменений из github<br>
 `git pull origin dev`
 
-#### Структура сайта
+### Структура сайта
 **Работаем всегда на папке local**<br>
 Свои компоненты `/local/components/kompot/`<br>
 Свои модули `/local/modules/`<br>
@@ -128,7 +128,7 @@ bower_components
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; Функции `/loca/php_interface/kompot/events.php`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; События `/loca/php_interface/kompot/functions.php`<br>
 
-#### Реализация init.php
+### Реализация init.php
 ```php
 // подключение файла с константами
 require_once("kompot/constants.php");
@@ -140,7 +140,35 @@ require_once("kompot/functions.php");
 require_once("kompot/events.php");
 ```
 
-#### Реализация constants.php
+### Подключение своих классов php
+Свои классы хранить в `/local/php_interface/kompot/classes/`
+```php
+// Подключение через автозагрузчик php
+spl_autoload_register(function ($class_name) {
+    include_once($_SERVER["DOCUMENT_ROOT"] . "/local/php_interface/classes/" . $class_name . ".php");
+});
+```
+```php
+// Подключение через bitrix автозагрузчик
+Bitrix\Main\Loader::registerAutoLoadClasses(null, [
+    'Kompot\SomeClass' => '/local/php_interface/classes/kompot/SomeClass.php'
+]);
+```
+
+```json
+# Подключение через composer.json psr-4
+{
+    "autoload": {
+        "psr-4": {"Kompot\\": "/local/php_interface/classes/"}
+    }
+}
+```
+```php
+// Также не забыть подключить autoload.php в init.php если использовать composer
+require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
+```
+
+### Реализация constants.php
 ```php
 // Свойства раздела
 define("IS_INDEX", ($APPLICATION->GetCurPage()==SITE_DIR)?(true):(false));
@@ -157,7 +185,7 @@ define("NO_IMAGE_LARGE", “/assets/img/no_image_large.png”);
 define("CATALOG_IBLOCK_ID", 1);
 ```
 
-#### Универсальный шаблон сайта
+### Универсальный шаблон сайта
 ```php
 <?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();?>
 <?
