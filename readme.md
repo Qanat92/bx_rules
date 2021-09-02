@@ -267,6 +267,21 @@ Loc::loadMessages(__FILE__);
 </body>
 </html>
 ```
+### Полезные функции методы
+```php
+// Получает значение свойства раздела
+$APPLICATION->GetDirProperty("");
 
+// Отсекает от строки все символы свыше указанной длины 
+TruncateText($val, 150);
 
+// Форматирование цены согласно условиям валюты
+CCurrencyLang::CurrencyFormat($price, “RUR”)
+
+// Получение оптимальной цены для товара
+CCatalogProduct::GetOptimalPrice();
+
+// Проверка нахождения в разделе/файле 
+CSite::InDir('/about/index.php')
+```
 
