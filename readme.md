@@ -1,6 +1,21 @@
 # Регламент и рекомендации по разработке
 ## Корпоративные сайты:
-### Настройка git
+Навигация:
+ + [Настройка git](#git_settings)
+ + [Структура сайта](#site_structure)
+ + [Реализация init.php](#init_release)
+ + [Подключение своих классов php](#own_classes)
+ + [Реализация constants.php](#constantsphp)
+ + [Универсальный шаблон сайта](#universal_site_template)
+ + [Полезные функции методы для интеграции](#useful_functions)
+ + [Рекомендации по интеграции верстки](#recomendation_integrate_design)
+ + [Вывод динамических разделов из инфоблока (Новости, товары, услуги и т.д)](#integrate_dynamic_data)
+ + [Форма обратной связи](#feedback_form)
+ + [Работа с событиями](#events)
+ + [Работа с кешом](#cache)
+ + [Работа с REST API](#restapi)
+ + [Работа с крон](#cron)
+### <a name="git_settings">	</a> Настройка git
 1. Создать приватную репозиторию в github.com (Обычно Тимлид или курирующий программист уже подготовить)
 2. Получить ssh доступы к тестовой площадки для проекта 
 3. Скачать и установить битрикс БУС в площадку с помощи 
@@ -118,17 +133,17 @@ bower_components
 12. Получения изменений из github<br>
 `git pull origin dev`
 
-### Структура сайта
+### <a name="site_structure">	</a> Структура сайта
 **Работаем всегда на папке local**<br>
 Свои компоненты `/local/components/kompot/`<br>
 Свои модули `/local/modules/`<br>
 Шаблон сайта `/local/templates/main/`<br>
 Свои разработки php_interface `/local/php_interface/kompot/`<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; Константы `/loca/php_interface/kompot/constants.php`<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; Функции `/loca/php_interface/kompot/events.php`<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; События `/loca/php_interface/kompot/functions.php`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; Константы `/local/php_interface/kompot/constants.php`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; События `/local/php_interface/kompot/events.php`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &bull; Функции `/local/php_interface/kompot/functions.php`<br>
 
-### Реализация init.php
+### <a name="init_release">	</a> Реализация init.php
 ```php
 // подключение файла с константами
 require_once("kompot/constants.php");
@@ -140,7 +155,7 @@ require_once("kompot/functions.php");
 require_once("kompot/events.php");
 ```
 
-### Подключение своих классов php
+### <a name="own_classes">	</a> Подключение своих классов php
 Свои классы хранить в `/local/php_interface/kompot/classes/`
 ```php
 // Подключение через автозагрузчик php
@@ -168,7 +183,7 @@ Bitrix\Main\Loader::registerAutoLoadClasses(null, [
 require $_SERVER['DOCUMENT_ROOT'] . '/vendor/autoload.php';
 ```
 
-### Реализация constants.php
+### <a name="constantsphp">	</a> Реализация constants.php
 ```php
 // Свойства раздела
 define("IS_INDEX", ($APPLICATION->GetCurPage()==SITE_DIR)?(true):(false));
@@ -185,7 +200,7 @@ define("NO_IMAGE_LARGE", “/assets/img/no_image_large.png”);
 define("CATALOG_IBLOCK_ID", 1);
 ```
 
-### Универсальный шаблон сайта
+### <a name="universal_site_template">	</a> Универсальный шаблон сайта
 ```php
 <?if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();?>
 <?
@@ -267,7 +282,7 @@ Loc::loadMessages(__FILE__);
 </body>
 </html>
 ```
-### Полезные функции методы
+### <a name="useful_functions">	</a> Полезные функции методы для интеграции
 ```php
 // Получает значение свойства раздела
 $APPLICATION->GetDirProperty("");
@@ -275,13 +290,233 @@ $APPLICATION->GetDirProperty("");
 // Отсекает от строки все символы свыше указанной длины 
 TruncateText($val, 150);
 
-// Форматирование цены согласно условиям валюты
-CCurrencyLang::CurrencyFormat($price, “RUR”)
-
-// Получение оптимальной цены для товара
-CCatalogProduct::GetOptimalPrice();
-
 // Проверка нахождения в разделе/файле 
 CSite::InDir('/about/index.php')
-```
 
+// Отложенные блоки для ставки
+$APPLICATION->ShowViewContent('head_block');
+
+$this->SetViewTarget('head_block');
+   // Отложенный блок
+$this->EndViewTarget(); 
+```
+### <a name="recomendation_integrate_design">	</a> Рекомендации по интеграции верстки
+1. В хедере должны быть хлебные крошки, заголов страницы и боковые блоки.
+2. В рабочей области должно быть динамический контент (bitrix:news, bitrix:catalog и т.д)
+3. Если по каким то причинам (из-за сложностей на верстке) нужно формировать хлебные крошки и заголовок в рабочей области
+для определенных разделов то нужно через свойства раздела скрыть их в хедере и выводить в рабочей области.
+```
+// Константа для скрытия хлебных крошек для определенных разделов
+define("HIDE_BREADCRUMB", ($APPLICATION->GetDirProperty("HIDE_BREADCRUMB")=="Y")?(true):(false));
+
+// В хедере
+if (!HIDE_BREADCRUMB) {
+    ?>
+    <?$APPLICATION->IncludeComponent("bitrix:breadcrumb","",Array(
+        "START_FROM" => "0",
+        "PATH" => "",
+        "SITE_ID" => "s1"
+        )
+    );?>
+    <?
+}
+```
+4. Использовать включаемые области для статики как лого сайта, телефон, емаил, адрес в шапке или в футере, кнопки соц. сетей 
+
+### <a name="integrate_dynamic_data">	</a> Вывод динамических разделов из инфоблока (Новости, товары, услуги и т.д)
+Использовать компонент bitrix:news: <br>
+По чпу можно выводить <b>Список элементов -> деталька элемента</b><br>
+или <b>Список разделов -> Список элементов -> деталька элемента</b>
+##### Пример:
+/news/index.php -> bitrix:news<br>
+Шаблон списка -> news.php -> news.list<br>
+Шаблон детальки -> detail.php -> news.detail
+
+##### Пример с разделом
+/news/index.php -> bitrix:news<br>
+Шаблон разделов -> news.php -> catalog.section.list<br>
+Шаблон списка -> section.php -> news.list<br>
+Шаблон детальки -> detail.php -> news.detail
+
+### <a name="feedback_form">	</a> Форма обратной связи
+Стандартно нужно использовать компонент bitrix:main.feedback, если нужно доп. поля то нужно скопировать данный компонент
+и доработать component.php (Добавить поля)<br>
+Если редакция битрикса позволяет (стандарт и выше) можно использовать веб формы.
+
+### <a name="events">	</a> Работа с событиями
+Разные примеры с событиями:
+1. Свои поля для поиска. <br>
+При переиндексации можно добавить к элементу любой параметр. В этом примере я добавляю свойство «в архиве».
+```php
+// В /local/php_interface/kompot/events.php
+use Bitrix\Main\EventManager;
+EventManager::getInstance()->addEventHandler(
+    "search",
+    "BeforeIndex",
+    "BeforeIndexHandler"
+);
+
+// В /local/php_interface/kompot/functions.php
+function BeforeIndexHandler($arFields) {
+    if ($arFields["MODULE_ID"] == "iblock" && substr($arFields["ITEM_ID"], 0, 1) != "S") {
+        $arFields["PARAMS"]["archived"] = "N";
+        $db_props = CIBlockElement::GetProperty(NEWS_IBLOCK_ID, $arFields["ITEM_ID"], array("sort" => "asc"), Array("CODE" => "ARCHIVED"));
+        if ($ar_props = $db_props->Fetch()) {
+            if ($ar_props["VALUE"] != ''){
+                $arFields["PARAMS"]["archived"] = "Y";
+            }
+        }
+    }
+    return $arFields;
+}
+```
+После этого мы можем использовать его в фильтре компонента bitrix:search.page.
+```php
+global $addSearchFilter;
+$addSearchFilter = ["PARAMS" => ["archived" => "N"]];
+ 
+$arElements = $APPLICATION->IncludeComponent(
+	"bitrix:search.page",
+	".default",
+	Array(
+		"RESTART" => $arParams["RESTART"],
+		"NO_WORD_LOGIC" => $arParams["NO_WORD_LOGIC"],
+		"USE_LANGUAGE_GUESS" => $arParams["USE_LANGUAGE_GUESS"],
+		"CHECK_DATES" => $arParams["CHECK_DATES"],
+		"arrFILTER" => array("iblock_".$arParams["IBLOCK_TYPE"]),
+		"arrFILTER_iblock_".$arParams["IBLOCK_TYPE"] => array($arParams["IBLOCK_ID"]),
+		"USE_TITLE_RANK" => "N",
+		"DEFAULT_SORT" => "rank",
+		"FILTER_NAME" => "addSearchFilter",
+		"SHOW_WHERE" => "N",
+		"arrWHERE" => array(),
+		"SHOW_WHEN" => "N",
+		"PAGE_RESULT_COUNT" => 50,
+		"DISPLAY_TOP_PAGER" => "N",
+		"DISPLAY_BOTTOM_PAGER" => "N",
+		"PAGER_TITLE" => "",
+		"PAGER_SHOW_ALWAYS" => "N",
+		"PAGER_TEMPLATE" => "N",
+	),
+	$arResult["THEME_COMPONENT"]
+);
+```
+2. Доп. проверки при удаление элементов инфоблока
+```php
+// В /local/php_interface/kompot/events.php
+use Bitrix\Main\EventManager;
+EventManager::getInstance()->addEventHandler(
+    "iblock",
+    "OnBeforeIBlockElementDelete",
+    "OnBeforeIBlockElementDeleteHandler"
+);
+
+// В /local/php_interface/kompot/functions.php
+function OnBeforeIBlockElementDeleteHandler ($ID)
+{
+    if ($ID == 1)
+    {
+        global $APPLICATION;
+        $APPLICATION->throwException("элемент с ID=1 нельзя удалить.");
+        return false;
+    }
+}
+```
+### <a name="cache">	</a> Работа с кешом
+Нужно постараться использовать компоненты с кешом "Авто + Управляемое" либо "Кешировать на время".<br>
+Если нет возможно использовать компонент то все ресурсоемкие обработки и выборки обвернуть в кеш:<br>
+```php
+$obCache = new CPHPCache();
+$cacheLifetime = 86400 * 7; // Время кеша в секундах 
+$cacheID = 'AllItemsIDs'; // Уникальный id кеша 
+$cachePath = '/'.$cacheID; // Папка для хранения кеша (относительно /bitrix/cache/ если типа кеша файлы)
+if ($obCache->InitCache($cacheLifetime, $cacheID, $cachePath)) {
+   $vars = $obCache->GetVars();
+   extract($vars);
+   // или же 
+   $arAllItemsIDs = $vars['arAllItemsIDs'];
+} elseif ($obCache->StartDataCache()) {
+   $rs = CIBlockElement::GetList([], ['IBLOCK_ID' => PRODUCT_IBLOCK_ID], false, false, ['ID']);
+   while ($ar = $rs->Fetch()) {
+      $arAllItemsIDs[] = $ar['ID'];
+   }
+   $obCache->EndDataCache(['arAllItemsIDs' => $arAllItemsIDs]);
+}
+print_r(count($arAllItemsIDs));
+
+// Удаление кеша
+CPHPCache::Clean("AllItemsIDs", false, "cache/AllItemsIDs");
+```
+Чтобы кеш спросивался автоматически при изменении в бд использовать тегированный кеш:
+```php
+$obCache = new CPHPCache();
+$cacheLifetime = 86400 * 7; // Время кеша в секундах 
+$cacheID = 'AllItemsIDs'; // Уникальный id кеша 
+$cachePath = '/'.$cacheID; // Папка для хранения кеша (относительно /bitrix/cache/ если типа кеша файлы)
+if ($obCache->InitCache($cacheLifetime, $cacheID, $cachePath)) {
+   $vars = $obCache->GetVars();
+   extract($vars);
+   // или же 
+   $arAllItemsIDs = $vars['arAllItemsIDs'];
+} elseif ($obCache->StartDataCache()) {
+   global $CACHE_MANAGER;
+   $CACHE_MANAGER->StartTagCache($cachePath);
+   $CACHE_MANAGER->RegisterTag("iblock_id_" . PRODUCT_IBLOCK_ID);
+   $rs = CIBlockElement::GetList([], ['IBLOCK_ID' => PRODUCT_IBLOCK_ID], false, false, ['ID']);
+   while ($ar = $rs->Fetch()) {
+      $arAllItemsIDs[] = $ar['ID'];
+   }
+   $CACHE_MANAGER->RegisterTag("iblock_id_new");
+   $CACHE_MANAGER->EndTagCache();
+   $obCache->EndDataCache(['arAllItemsIDs' => $arAllItemsIDs]);
+}
+print_r(count($arAllItemsIDs));
+
+// Удаление кеша
+global $CACHE_MANAGER;
+$CACHE_MANAGER->ClearByTag("iblock_id_" . PRODUCT_IBLOCK_ID);
+```
+Более подробно о тегированном кеше можно прочитать здесь: https://dev.1c-bitrix.ru/learning/course/index.php?COURSE_ID=43&LESSON_ID=2978
+
+### <a name="restapi">	</a> Работа с REST API
+Обычно для получения данных по рест апи используется cUrl php:
+```php
+$url = 'https://my.com/rest';
+$params = [
+    "param1" => "value1",
+    "param2" => "value2",
+];
+$data = http_build_query($params)
+
+$curl = curl_init();
+curl_setopt($curl, CURLOPT_URL, $url);
+curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+  'APIKEY: 111111111111111111111'
+));
+curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+$result = curl_exec($curl);
+$response = json_decode($result, true);
+print_r($response);
+```
+Иногда для удобства используется этот плагин для разных запросов https://docs.guzzlephp.org/en/stable/
+
+### <a name="cron">	</a> Работа с крон
+Сложные вычисления которые могут тормозит сайт нужно перенести в крон скрипт. Чтобы по расписании на фоне делать обработки данных:
+```php
+$_SERVER['DOCUMENT_ROOT'] = '/home/bitrix/www';
+
+define('NO_KEEP_STATISTIC', true);
+define('NOT_CHECK_PERMISSIONS',true);
+define('BX_CRONTAB', true);
+define('BX_NO_ACCELERATOR_RESET', true);
+define('SITE_ID', 's1');
+define('LANG', 'ru');
+
+require($_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php');
+
+if (Bitrix\Main\Loader::IncludeModule('iblock')) {
+    /* какие то вычисления */
+}
+```
+Установка скрипта на крон https://mblogm.ru/blog/cron-for-php-scripts/
